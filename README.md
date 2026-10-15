@@ -109,6 +109,7 @@ To stop exposing port 3000 directly, set `PORT=127.0.0.1:3000` in `/opt/leaseweb
 | `PORT` | `3000` | Port to listen on. With Docker Compose this is the host port (it may include an address, e.g. `127.0.0.1:3000`). |
 | `APP_SECRET` | generated | Key that encrypts the API key and proxy password. If empty, one is generated and stored next to the database. Never change it after setup, or you have to enter the secrets again. |
 | `DATA_DIR` | `./data` (`/data` in Docker) | Where the SQLite database lives. |
+| `NPM_REGISTRY` | `https://registry.npmjs.org/` | Only for building the image yourself: the npm registry or mirror to download packages from. |
 | `COOKIE_SECURE` | `auto` | `auto` marks the session cookie Secure when the request came over HTTPS. Set `true` behind a proxy that does not send `X-Forwarded-Proto`. |
 
 ## Update, back up, remove

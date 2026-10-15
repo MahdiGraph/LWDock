@@ -2,8 +2,10 @@
 
 FROM node:22-bookworm-slim AS deps
 WORKDIR /app
+# Where to download npm packages from. Point it at a mirror if registry.npmjs.org is slow or blocked.
+ARG NPM_REGISTRY=https://registry.npmjs.org/
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+RUN npm ci --no-audit --no-fund --registry="$NPM_REGISTRY" --replace-registry-host=always
 
 FROM node:22-bookworm-slim AS build
 WORKDIR /app

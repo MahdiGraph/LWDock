@@ -1,7 +1,10 @@
 services:
   leaseweb-dock:
     image: ghcr.io/mahdigraph/lwdock:latest
-    build: .
+    build:
+      context: .
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org/}
     container_name: leaseweb-dock
     restart: unless-stopped
     ports:
