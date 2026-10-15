@@ -19,13 +19,20 @@ You need a Linux server with a public IP (1 GB RAM is enough). One command insta
 curl -fsSL https://raw.githubusercontent.com/MahdiGraph/LWDock/main/install.sh | sudo bash
 ```
 
-Then open `http://YOUR-SERVER-IP:3000` and create the admin account. The first person to open the page becomes the admin, so do this right away.
+The installer asks two questions:
 
-Use another port or folder by setting variables in front of `bash`:
+1. **Where to listen**: on all addresses (you open `http://SERVER-IP:PORT` directly), or on `127.0.0.1` only (you put Caddy, nginx or another reverse proxy in front).
+2. **Which port**: it suggests a free one and refuses ports that are already taken.
+
+At the end it prints the address to open. Create the admin account right away: the first person to open the page becomes the admin.
+
+To skip the questions, for example in automation, set the answers in front of `bash`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/MahdiGraph/LWDock/main/install.sh | sudo PORT=8080 INSTALL_DIR=/srv/dock bash
+curl -fsSL https://raw.githubusercontent.com/MahdiGraph/LWDock/main/install.sh | sudo LISTEN_ADDRESS=127.0.0.1 PORT=8080 INSTALL_DIR=/srv/dock bash
 ```
+
+Run the same command again later to update. It keeps your data and settings, and pressing Enter keeps the current address and port.
 
 Leaseweb Dock uses Docker Compose v2, the `docker compose` command (with a space). The old standalone `docker-compose` 1.x is end-of-life and is not used even if it is installed; the installer adds the v2 plugin next to it.
 
@@ -93,22 +100,22 @@ Username and password are optional. The password is stored encrypted. *Test thro
 
 ## HTTPS
 
-Do not share the panel over plain HTTP. The easiest way to get HTTPS is [Caddy](https://caddyserver.com) on the same server. Point a DNS name at the server, then:
+Do not share the panel over plain HTTP. The easiest way to get HTTPS is [Caddy](https://caddyserver.com) on the same server. Choose *127.0.0.1 only* in the installer, point a DNS name at the server, then use the port the installer printed:
 
 ```
 # /etc/caddy/Caddyfile
 dock.example.com {
-    reverse_proxy 127.0.0.1:3000
+    reverse_proxy 127.0.0.1:PORT
 }
 ```
 
-To stop exposing port 3000 directly, set `PORT=127.0.0.1:3000` in `/opt/leaseweb-dock/.env` and run `docker compose up -d` again.
+To switch an existing installation to local-only, run the installer again and choose option 2, or set `PORT=127.0.0.1:PORT` in `/opt/leaseweb-dock/.env` and run `docker compose up -d` there.
 
 ## Configuration
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `PORT` | `3000` | Port to listen on. With Docker Compose this is the host port (it may include an address, e.g. `127.0.0.1:3000`). |
+| `PORT` | `3000` | Port to listen on. With Docker Compose this is the host port, optionally with an address: `127.0.0.1:3000` listens on the local machine only. The installer writes it for you. |
 | `APP_SECRET` | generated | Key that encrypts the API key and proxy password. If empty, one is generated and stored next to the database. Never change it after setup, or you have to enter the secrets again. |
 | `DATA_DIR` | `./data` (`/data` in Docker) | Where the SQLite database lives. |
 | `NPM_REGISTRY` | `https://registry.npmjs.org/` | Only for building the image yourself: the npm registry or mirror to download packages from. |
