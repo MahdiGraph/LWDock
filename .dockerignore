@@ -1,0 +1,14 @@
+.git
+.github
+.next
+node_modules
+data
+.env
+.env.*
+!.env.example
+.claude
+.agents
+.taste-skill
+npm-debug.log*
+*.md
+!README.md
