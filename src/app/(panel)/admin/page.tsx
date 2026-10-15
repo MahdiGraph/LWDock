@@ -15,7 +15,10 @@ export default async function AdminPage() {
   const assignments = db()
     .prepare("SELECT COUNT(*) AS total, COUNT(DISTINCT kind || ':' || server_id) AS servers FROM assignments")
     .get() as { total: number; servers: number }
-  const recent = db().prepare("SELECT * FROM audit_logs ORDER BY id DESC LIMIT 8").all() as AuditRow[]
+  // Server actions only; sign-ins and settings changes are on the Activity page.
+  const recent = db()
+    .prepare("SELECT * FROM audit_logs WHERE server_id IS NOT NULL ORDER BY id DESC LIMIT 8")
+    .all() as AuditRow[]
 
   return (
     <AdminOverview

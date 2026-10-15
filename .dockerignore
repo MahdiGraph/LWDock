@@ -12,3 +12,4 @@ data
 npm-debug.log*
 *.md
 !README.md
+docs

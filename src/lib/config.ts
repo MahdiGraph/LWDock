@@ -1,9 +1,10 @@
 import crypto from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
+import pkg from "../../package.json"
 
 export const APP_NAME = "Leaseweb Dock"
-export const APP_VERSION = process.env.npm_package_version ?? "1.0.0"
+export const APP_VERSION: string = pkg.version
 
 /** Where the SQLite database and the generated secret live. */
 export const DATA_DIR = process.env.DATA_DIR

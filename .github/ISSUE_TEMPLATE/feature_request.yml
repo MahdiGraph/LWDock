@@ -1,0 +1,24 @@
+name: Feature request
+description: Suggest something Leaseweb Dock should do.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What do you want to do?
+      description: Describe the situation and what is missing today, from the point of view of the admin or the user.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How could it work?
+      description: Your idea for the feature. Links to the matching Leaseweb API endpoint help a lot (https://developer.leaseweb.com/).
+  - type: dropdown
+    id: who
+    attributes:
+      label: Who is it for?
+      options:
+        - Admins
+        - Users the servers are shared with
+        - Both

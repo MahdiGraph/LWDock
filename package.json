@@ -1,13 +1,32 @@
 {
   "name": "leaseweb-dock",
-  "version": "1.0.0",
-  "description": "Self-hosted panel for sharing Leaseweb servers with the people who use them.",
+  "version": "1.1.0",
+  "description": "Self-hosted control panel for sharing Leaseweb dedicated servers, VPS and Public Cloud instances with customers, friends and teams.",
   "private": true,
   "license": "MIT",
+  "homepage": "https://github.com/MahdiGraph/LWDock#readme",
   "repository": {
     "type": "git",
     "url": "https://github.com/MahdiGraph/LWDock.git"
   },
+  "bugs": {
+    "url": "https://github.com/MahdiGraph/LWDock/issues"
+  },
+  "keywords": [
+    "leaseweb",
+    "leaseweb-api",
+    "control-panel",
+    "dedicated-server",
+    "vps",
+    "public-cloud",
+    "self-hosted",
+    "reseller",
+    "ipmi",
+    "socks5",
+    "proxy",
+    "nextjs",
+    "shadcn-ui"
+  ],
   "engines": {
     "node": ">=20.9"
   },
