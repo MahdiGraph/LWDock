@@ -150,13 +150,13 @@ const BW_RANGES: Record<string, { ms: number; granularity: string }> = {
   "30d": { ms: 30 * DAY, granularity: "DAY" },
 }
 
-function DedicatedBandwidth({ kind, id }: ServerProps) {
+function DedicatedBandwidth({ account, kind, id }: ServerProps) {
   const [range, setRange] = React.useState("24h")
   const [aggregation, setAggregation] = React.useState("AVG")
   // Rounded to the minute so the request (and its cache key) is stable between renders.
   const [now] = React.useState(() => Math.floor(Date.now() / 60_000) * 60_000)
   const r = BW_RANGES[range]
-  const data = useLw<MetricsResponse>(kind, id, "metrics/bandwidth", {
+  const data = useLw<MetricsResponse>(account, kind, id, "metrics/bandwidth", {
     from: isoNoMs(now - r.ms),
     to: isoNoMs(now),
     granularity: r.granularity,
@@ -189,11 +189,11 @@ function TrafficTotal({ rows }: { rows: Row[] }) {
   )
 }
 
-function DedicatedTraffic({ kind, id }: ServerProps) {
+function DedicatedTraffic({ account, kind, id }: ServerProps) {
   const [range, setRange] = React.useState("30d")
   const [now] = React.useState(() => Math.floor(Date.now() / 3_600_000) * 3_600_000)
   const months = range === "12m"
-  const data = useLw<MetricsResponse>(kind, id, "metrics/datatraffic", {
+  const data = useLw<MetricsResponse>(account, kind, id, "metrics/datatraffic", {
     from: isoNoMs(now - (months ? 365 : 30) * DAY),
     to: isoNoMs(now),
     granularity: months ? "MONTH" : "DAY",
@@ -212,10 +212,10 @@ function DedicatedTraffic({ kind, id }: ServerProps) {
   )
 }
 
-function CloudTraffic({ kind, id }: ServerProps) {
+function CloudTraffic({ account, kind, id }: ServerProps) {
   const [range, setRange] = React.useState("30")
   const [now] = React.useState(() => Date.now())
-  const data = useLw<MetricsResponse>(kind, id, "metrics/datatraffic", {
+  const data = useLw<MetricsResponse>(account, kind, id, "metrics/datatraffic", {
     from: dateOnly(now - Number(range) * DAY),
     to: dateOnly(now + DAY),
     granularity: "DAY",
@@ -240,11 +240,11 @@ const CPU_RANGES: Record<string, { days: number; granularity: string }> = {
   "30": { days: 30, granularity: "DAY" },
 }
 
-function CloudCpu({ kind, id }: ServerProps) {
+function CloudCpu({ account, kind, id }: ServerProps) {
   const [range, setRange] = React.useState("1")
   const [now] = React.useState(() => Date.now())
   const r = CPU_RANGES[range]
-  const data = useLw<MetricsResponse>(kind, id, "metrics/cpu", {
+  const data = useLw<MetricsResponse>(account, kind, id, "metrics/cpu", {
     from: dateOnly(now - r.days * DAY),
     to: dateOnly(now + DAY),
     granularity: r.granularity,

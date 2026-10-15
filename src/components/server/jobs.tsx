@@ -30,8 +30,8 @@ const JOB_NAMES: Record<string, string> = {
   ipmiReset: "IPMI reset",
 }
 
-export function Jobs({ kind, id }: ServerProps) {
-  const jobs = useLw<{ jobs: Job[] }>(kind, id, "jobs", { limit: 20 }, {
+export function Jobs({ account, kind, id }: ServerProps) {
+  const jobs = useLw<{ jobs: Job[] }>(account, kind, id, "jobs", { limit: 20 }, {
     refreshInterval: (d) => (d?.jobs?.some((j) => j.isRunning) ? 5000 : 0),
   })
   const { busy, run } = useAction()
@@ -40,7 +40,7 @@ export function Jobs({ kind, id }: ServerProps) {
 
   const call = (key: string, sub: string, message: string) =>
     run(key, async () => {
-      await lwCall(kind, id, "POST", sub)
+      await lwCall(account, kind, id, "POST", sub)
       await jobs.mutate()
     }, message)
 

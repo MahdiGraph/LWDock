@@ -17,8 +17,8 @@ import { get, type Dict, type ServerProps } from "./types"
 
 type Image = { id: string; name: string; family?: string; custom?: boolean }
 
-export function CloudReinstall({ kind, id, onStarted }: ServerProps & { onStarted: () => void }) {
-  const images = useLw<{ images: Image[] }>(kind, id, "reinstall/images", { limit: 100 })
+export function CloudReinstall({ account, kind, id, onStarted }: ServerProps & { onStarted: () => void }) {
+  const images = useLw<{ images: Image[] }>(account, kind, id, "reinstall/images", { limit: 100 })
   const [imageId, setImageId] = React.useState("")
   const list = [...(images.data?.images ?? [])].sort(
     (a, b) => Number(!!a.custom) - Number(!!b.custom) || a.name.localeCompare(b.name)
@@ -60,7 +60,7 @@ export function CloudReinstall({ kind, id, onStarted }: ServerProps & { onStarte
                 confirmLabel="Erase and reinstall"
                 destructive
                 onConfirm={async () => {
-                  await lwCall(kind, id, "PUT", "reinstall", { imageId })
+                  await lwCall(account, kind, id, "PUT", "reinstall", { imageId })
                   toast.success("Reinstall started")
                   onStarted()
                 }}
@@ -86,8 +86,8 @@ export function CloudReinstall({ kind, id, onStarted }: ServerProps & { onStarte
 
 type Snapshot = { id: string; displayName?: string; state?: string; created?: string }
 
-export function CloudSnapshots({ kind, id }: ServerProps) {
-  const snaps = useLw<{ snapshots: Snapshot[] }>(kind, id, "snapshots", undefined, {
+export function CloudSnapshots({ account, kind, id }: ServerProps) {
+  const snaps = useLw<{ snapshots: Snapshot[] }>(account, kind, id, "snapshots", undefined, {
     refreshInterval: (d) => (d?.snapshots?.some((s) => s.state === "CREATING") ? 5000 : 0),
   })
   const [name, setName] = React.useState("")
@@ -105,7 +105,7 @@ export function CloudSnapshots({ kind, id }: ServerProps) {
           onSubmit={(e) => {
             e.preventDefault()
             run("create", async () => {
-              await lwCall(kind, id, "POST", "snapshots", { name: name.trim() || `Snapshot ${new Date().toLocaleString()}` })
+              await lwCall(account, kind, id, "POST", "snapshots", { name: name.trim() || `Snapshot ${new Date().toLocaleString()}` })
               setName("")
               await snaps.mutate()
             }, "Snapshot is being created")
@@ -136,7 +136,7 @@ export function CloudSnapshots({ kind, id }: ServerProps) {
                   confirmLabel="Restore"
                   destructive
                   onConfirm={async () => {
-                    await lwCall(kind, id, "PUT", `snapshots/${snap.id}`)
+                    await lwCall(account, kind, id, "PUT", `snapshots/${snap.id}`)
                     toast.success("Restore started")
                   }}
                 >
@@ -150,7 +150,7 @@ export function CloudSnapshots({ kind, id }: ServerProps) {
                   confirmLabel="Delete"
                   destructive
                   onConfirm={async () => {
-                    await lwCall(kind, id, "DELETE", `snapshots/${snap.id}`)
+                    await lwCall(account, kind, id, "DELETE", `snapshots/${snap.id}`)
                     toast.success("Snapshot deleted")
                     await snaps.mutate()
                   }}
@@ -174,8 +174,8 @@ export function CloudSnapshots({ kind, id }: ServerProps) {
 
 type Iso = { id: string; name: string }
 
-export function CloudIso({ kind, id, raw, onChanged }: ServerProps & { raw: Dict; onChanged: () => void }) {
-  const isos = useCatalog<{ isos: Iso[] }>(kind === "vps" ? "publicCloud/v1/vps/isos" : "publicCloud/v1/isos", { all: "isos" })
+export function CloudIso({ account, kind, id, raw, onChanged }: ServerProps & { raw: Dict; onChanged: () => void }) {
+  const isos = useCatalog<{ isos: Iso[] }>(account, kind === "vps" ? "publicCloud/v1/vps/isos" : "publicCloud/v1/isos", { all: "isos" })
   const [isoId, setIsoId] = React.useState("")
   const { busy, run } = useAction()
   const current = get<Iso>(raw, "iso")
@@ -197,7 +197,7 @@ export function CloudIso({ kind, id, raw, onChanged }: ServerProps & { raw: Dict
               disabled={!!busy}
               onClick={() =>
                 run("detach", async () => {
-                  await lwCall(kind, id, "POST", "detachIso")
+                  await lwCall(account, kind, id, "POST", "detachIso")
                   onChanged()
                 }, "ISO detached")
               }
@@ -228,7 +228,7 @@ export function CloudIso({ kind, id, raw, onChanged }: ServerProps & { raw: Dict
               disabled={!isoId || !!busy}
               onClick={() =>
                 run("attach", async () => {
-                  await lwCall(kind, id, "POST", "attachIso", { isoId })
+                  await lwCall(account, kind, id, "POST", "attachIso", { isoId })
                   onChanged()
                 }, "ISO attached")
               }

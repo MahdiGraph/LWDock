@@ -18,7 +18,6 @@ const r = (methods: Method[], source: string, adminOnly = false): Rule => ({
 
 const DEDICATED: Rule[] = [
   r(["GET"], ""),
-  r(["PUT"], "", true),
   r(["GET"], "(powerInfo|hardwareInfo|hardwareMonitoring|nullRouteHistory|networkInterfaces|ips|jobs|credentials|leases)"),
   r(["POST"], "(powerCycle|powerOn|powerOff|ipmiReset|hardwareScan|cancelActiveJob|expireActiveJob|install|rescueMode)"),
   r(["GET", "PUT"], "ips/{s}"),
@@ -39,7 +38,6 @@ const DEDICATED: Rule[] = [
 
 const CLOUD: Rule[] = [
   r(["GET"], ""),
-  r(["PUT"], "", true),
   r(["POST"], "(start|stop|reboot|resetPassword|attachIso|detachIso)"),
   r(["GET"], "(console|credentials|ips|snapshots|reinstall/images|notificationSettings/dataTraffic)"),
   r(["PUT"], "reinstall"),

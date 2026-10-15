@@ -13,7 +13,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="display mb-5 text-2xl">{children}</h2>
 }
 
-export function DedicatedOverview({ kind, id, isAdmin, raw, onStarted }: ServerProps & { raw: Dict; onStarted: () => void }) {
+export function DedicatedOverview({ account, kind, id, isAdmin, raw, onStarted }: ServerProps & { raw: Dict; onStarted: () => void }) {
   const { run } = useAction()
   const [cycle, setCycle] = React.useState(true)
   const disks = (get<Dict[]>(raw, "specs.hdd") ?? [])
@@ -116,7 +116,7 @@ export function DedicatedOverview({ kind, id, isAdmin, raw, onStarted }: ServerP
               }
               onConfirm={() =>
                 run("ipmi", async () => {
-                  await lwCall(kind, id, "POST", "ipmiReset", { powerCycle: cycle })
+                  await lwCall(account, kind, id, "POST", "ipmiReset", { powerCycle: cycle })
                   onStarted()
                 }, "IPMI reset started")
               }

@@ -1,5 +1,7 @@
 /** Shared between server and client: no Node imports here. */
 
+import { countryFor } from "./geo"
+
 export const KINDS = ["dedicated", "instance", "vps"] as const
 export type Kind = (typeof KINDS)[number]
 
@@ -34,10 +36,15 @@ export function isKind(value: string): value is Kind {
 export type ServerSummary = {
   kind: Kind
   id: string
+  /** The Leaseweb account (API key) the server belongs to. */
+  accountId: number
+  accountName: string
   name: string
   reference: string | null
   ip: string | null
   location: string | null
+  /** ISO country code of the data center, for the flag. */
+  country: string | null
   spec: string | null
   state: string | null
   os: string | null
@@ -54,8 +61,9 @@ function mainIp(ips: unknown): string | null {
   return pick ? str(pick.ip) : null
 }
 
-export function summarize(kind: Kind, raw: Dict): ServerSummary {
+export function summarize(kind: Kind, raw: Dict, account: { id: number; name: string }): ServerSummary {
   const id = String(raw.id ?? "")
+  const owner = { accountId: account.id, accountName: account.name }
   if (kind === "dedicated") {
     const contract = (raw.contract ?? {}) as Dict
     const loc = (raw.location ?? {}) as Dict
@@ -70,10 +78,12 @@ export function summarize(kind: Kind, raw: Dict): ServerSummary {
     return {
       kind,
       id,
+      ...owner,
       name: reference ?? id,
       reference,
       ip: str(pub.ip)?.split("/")[0] ?? null,
       location: [str(loc.site), str(loc.suite)].filter(Boolean).join(" · ") || null,
+      country: countryFor({ site: str(loc.site) }),
       spec: [cpuText, ramText].filter(Boolean).join(", ") || null,
       state: str(contract.deliveryStatus),
       os: null,
@@ -92,10 +102,12 @@ export function summarize(kind: Kind, raw: Dict): ServerSummary {
   return {
     kind,
     id,
+    ...owner,
     name: reference ?? id,
     reference,
     ip: mainIp(raw.ips),
     location: [str(raw.region), str(raw.datacenter)].filter(Boolean).join(" · ") || null,
+    country: countryFor({ datacenter: str(raw.datacenter), region: str(raw.region) }),
     spec: specParts.join(", ") || null,
     state: str(raw.state),
     os: str(image.name),

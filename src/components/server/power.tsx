@@ -16,8 +16,8 @@ export function PowerTile(props: ServerProps & { raw: Dict; onChanged: () => voi
   return props.kind === "dedicated" ? <DedicatedPower {...props} /> : <CloudPower {...props} />
 }
 
-function DedicatedPower({ kind, id, raw, className }: ServerProps & { raw: Dict; className?: string }) {
-  const power = useLw<PowerInfo>(kind, id, "powerInfo", undefined, { refreshInterval: 30_000 })
+function DedicatedPower({ account, kind, id, raw, className }: ServerProps & { raw: Dict; className?: string }) {
+  const power = useLw<PowerInfo>(account, kind, id, "powerInfo", undefined, { refreshInterval: 30_000 })
   const { busy, run } = useAction()
   const state = power.data?.ipmi?.status ?? power.data?.pdu?.status ?? null
   const canCycle = get<boolean>(raw, "featureAvailability.powerCycle") !== false
@@ -26,7 +26,7 @@ function DedicatedPower({ kind, id, raw, className }: ServerProps & { raw: Dict;
     run(
       sub,
       async () => {
-        await lwCall(kind, id, "POST", sub)
+        await lwCall(account, kind, id, "POST", sub)
         setTimeout(() => power.mutate(), 8000)
       },
       message
@@ -79,7 +79,7 @@ function DedicatedPower({ kind, id, raw, className }: ServerProps & { raw: Dict;
   )
 }
 
-function CloudPower({ kind, id, raw, onChanged, className }: ServerProps & { raw: Dict; onChanged: () => void; className?: string }) {
+function CloudPower({ account, kind, id, raw, onChanged, className }: ServerProps & { raw: Dict; onChanged: () => void; className?: string }) {
   const { busy, run } = useAction()
   const state = String(raw.state ?? "UNKNOWN")
   const running = state === "RUNNING"
@@ -89,7 +89,7 @@ function CloudPower({ kind, id, raw, onChanged, className }: ServerProps & { raw
     run(
       sub,
       async () => {
-        await lwCall(kind, id, "POST", sub)
+        await lwCall(account, kind, id, "POST", sub)
         onChanged()
       },
       message
@@ -99,7 +99,7 @@ function CloudPower({ kind, id, raw, onChanged, className }: ServerProps & { raw
     // Open the tab inside the click so pop-up blockers allow it, then point it at the console.
     const win = window.open("about:blank", "_blank")
     try {
-      const res = await api<{ url?: string }>(lwUrl(kind, id, "console"))
+      const res = await api<{ url?: string }>(lwUrl(account, kind, id, "console"))
       if (!res.url) throw new Error("Leaseweb returned no console address.")
       if (win) {
         win.opener = null

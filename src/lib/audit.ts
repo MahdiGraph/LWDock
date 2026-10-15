@@ -6,6 +6,7 @@ const MAX_ROWS = 20_000
 export function audit(entry: {
   user: Pick<User, "id" | "username"> | null
   action: string
+  accountId?: number | null
   kind?: string | null
   serverId?: string | null
   detail?: string | null
@@ -15,13 +16,14 @@ export function audit(entry: {
   try {
     db()
       .prepare(
-        "INSERT INTO audit_logs (at, user_id, username, action, kind, server_id, detail, status, ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        "INSERT INTO audit_logs (at, user_id, username, action, account_id, kind, server_id, detail, status, ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
       )
       .run(
         Date.now(),
         entry.user?.id ?? null,
         entry.user?.username ?? null,
         entry.action,
+        entry.accountId ?? null,
         entry.kind ?? null,
         entry.serverId ?? null,
         entry.detail ?? null,
@@ -45,6 +47,7 @@ export type AuditRow = {
   user_id: number | null
   username: string | null
   action: string
+  account_id: number | null
   kind: string | null
   server_id: string | null
   detail: string | null

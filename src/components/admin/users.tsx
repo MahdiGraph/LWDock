@@ -30,7 +30,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useApi } from "@/hooks/use-api"
-import { api, errorMessage } from "@/lib/client"
+import { api, errorMessage, serverHref } from "@/lib/client"
 import { timeAgo } from "@/lib/format"
 import { isKind, KIND_META } from "@/lib/kinds"
 import type { AdminUserRow } from "@/lib/users"
@@ -288,10 +288,10 @@ function EditUserForm({
   const [busy, setBusy] = React.useState(false)
   const [error, setError] = React.useState<unknown>(null)
 
-  async function unassign(kind: string, serverId: string) {
+  async function unassign(accountId: number, kind: string, serverId: string) {
     try {
-      await api("/api/admin/assignments", { method: "DELETE", body: { kind, serverId, userId: user.id } })
-      setServers((list) => list.filter((s) => !(s.kind === kind && s.server_id === serverId)))
+      await api("/api/admin/assignments", { method: "DELETE", body: { accountId, kind, serverId, userId: user.id } })
+      setServers((list) => list.filter((s) => !(s.account_id === accountId && s.kind === kind && s.server_id === serverId)))
       onSaved()
     } catch (e) {
       toast.error(errorMessage(e))
@@ -351,15 +351,15 @@ function EditUserForm({
             {servers.length ? (
               <ul className="mt-2 grid gap-1">
                 {servers.map((s) => (
-                  <li key={`${s.kind}:${s.server_id}`} className="flex items-center gap-3 bg-muted px-3 py-2 text-sm">
+                  <li key={`${s.account_id}:${s.kind}:${s.server_id}`} className="flex items-center gap-3 bg-muted px-3 py-2 text-sm">
                     <Link
-                      href={`/servers/${s.kind}/${encodeURIComponent(s.server_id)}`}
+                      href={serverHref(s.account_id, s.kind, s.server_id)}
                       className="min-w-0 flex-1 truncate hover:underline"
                     >
                       {s.label || s.server_id}
                       <span className="text-muted-foreground"> · {isKind(s.kind) ? KIND_META[s.kind].short : s.kind}</span>
                     </Link>
-                    <Button type="button" size="icon-xs" variant="ghost" aria-label="Unassign" onClick={() => unassign(s.kind, s.server_id)}>
+                    <Button type="button" size="icon-xs" variant="ghost" aria-label="Unassign" onClick={() => unassign(s.account_id, s.kind, s.server_id)}>
                       <XIcon />
                     </Button>
                   </li>

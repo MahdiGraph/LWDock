@@ -6,6 +6,8 @@ import { PageHeader } from "@/components/board"
 import { ErrorNote, Loading, StateMark } from "@/components/common"
 import { useApi } from "@/hooks/use-api"
 import { KIND_META, type ServerSummary } from "@/lib/kinds"
+import { serverHref } from "@/lib/client"
+import { Flag } from "@/components/flag"
 
 type Row = ServerSummary & { error?: string }
 
@@ -36,9 +38,9 @@ export function MyServers({ name }: { name: string }) {
       ) : (
         <ul className="grid gap-2">
           {servers.map((s) => (
-            <li key={`${s.kind}:${s.id}`}>
+            <li key={`${s.accountId}:${s.kind}:${s.id}`}>
               <Link
-                href={`/servers/${s.kind}/${encodeURIComponent(s.id)}`}
+                href={serverHref(s.accountId, s.kind, s.id)}
                 className="group grid grid-cols-12 items-center gap-x-4 gap-y-2 bg-card p-5 transition-colors outline-none hover:bg-accent focus-visible:bg-accent md:p-6"
               >
                 <div className="col-span-12 min-w-0 md:col-span-4">
@@ -55,7 +57,10 @@ export function MyServers({ name }: { name: string }) {
                     </div>
                     <div className="col-span-6 md:col-span-2">
                       <p className="text-[13px] text-muted-foreground">Location</p>
-                      <p className="mt-0.5 truncate text-base">{s.location ?? "—"}</p>
+                      <p className="mt-0.5 truncate text-base">
+                        <Flag country={s.country} className="mr-1.5" />
+                        {s.location ?? "—"}
+                      </p>
                     </div>
                     <div className="col-span-9 min-w-0 md:col-span-3">
                       <p className="text-[13px] text-muted-foreground">{s.kind === "dedicated" ? "Hardware" : "Plan"}</p>

@@ -16,10 +16,17 @@ export function useApi<T>(url: string | null, config?: SWRConfiguration<T>) {
 }
 
 /** A Leaseweb call for one server, through the panel's gateway. */
-export function useLw<T>(kind: string, id: string, sub: string | null, query?: Query, config?: SWRConfiguration<T>) {
-  return useApi<T>(sub === null ? null : lwUrl(kind, id, sub, query), config)
+export function useLw<T>(
+  account: number,
+  kind: string,
+  id: string,
+  sub: string | null,
+  query?: Query,
+  config?: SWRConfiguration<T>
+) {
+  return useApi<T>(sub === null ? null : lwUrl(account, kind, id, sub, query), config)
 }
 
-export function useCatalog<T>(path: string | null, query?: Query, config?: SWRConfiguration<T>) {
-  return useApi<T>(path === null ? null : catalogUrl(path, query), { revalidateIfStale: false, ...config })
+export function useCatalog<T>(account: number, path: string | null, query?: Query, config?: SWRConfiguration<T>) {
+  return useApi<T>(path === null ? null : catalogUrl(account, path, query), { revalidateIfStale: false, ...config })
 }

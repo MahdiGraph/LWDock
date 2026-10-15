@@ -1,15 +1,11 @@
 import { db } from "./db"
 import { decrypt, encrypt } from "./crypto"
+import { listAccounts } from "./accounts"
 
 export const PROXY_PROTOCOLS = ["http", "https", "socks4", "socks5", "socks5h"] as const
 export type ProxyProtocol = (typeof PROXY_PROTOCOLS)[number]
 
 export const DEFAULT_BASE_URL = "https://api.leaseweb.com"
-
-export type LeasewebSettings = {
-  apiKey: string | null
-  baseUrl: string
-}
 
 export type ProxySettings = {
   enabled: boolean
@@ -38,11 +34,13 @@ function getSecret(key: string): string | null {
   return raw ? decrypt(raw) : null
 }
 
-export function getLeasewebSettings(): LeasewebSettings {
-  return {
-    apiKey: getSecret("lw.apiKey"),
-    baseUrl: get("lw.baseUrl") || DEFAULT_BASE_URL,
-  }
+/** The Leaseweb API address, shared by every account. */
+export function getBaseUrl(): string {
+  return get("lw.baseUrl") || DEFAULT_BASE_URL
+}
+
+export function saveBaseUrl(baseUrl: string) {
+  set("lw.baseUrl", baseUrl === DEFAULT_BASE_URL ? null : baseUrl)
 }
 
 export function getProxySettings(): ProxySettings {
@@ -58,12 +56,6 @@ export function getProxySettings(): ProxySettings {
   }
 }
 
-/** `apiKey: undefined` keeps the stored key, `null` removes it. */
-export function saveLeasewebSettings(input: { apiKey?: string | null; baseUrl: string }) {
-  if (input.apiKey !== undefined) set("lw.apiKey", input.apiKey ? encrypt(input.apiKey) : null)
-  set("lw.baseUrl", input.baseUrl === DEFAULT_BASE_URL ? null : input.baseUrl)
-}
-
 /** `password: undefined` keeps the stored password, `null` removes it. */
 export function saveProxySettings(input: Omit<ProxySettings, "password"> & { password?: string | null }) {
   set("proxy.enabled", input.enabled ? "1" : "0")
@@ -76,15 +68,13 @@ export function saveProxySettings(input: Omit<ProxySettings, "password"> & { pas
 
 /** What the admin settings screen is allowed to see: never the secrets themselves. */
 export function publicSettings() {
-  const lw = getLeasewebSettings()
-  const rawKey = get("lw.apiKey")
+  const accounts = listAccounts()
   const proxy = getProxySettings()
   return {
     leaseweb: {
-      configured: !!lw.apiKey,
-      unreadable: !!rawKey && !lw.apiKey,
-      apiKeyHint: lw.apiKey ? `••••${lw.apiKey.slice(-4)}` : null,
-      baseUrl: lw.baseUrl,
+      configured: accounts.some((a) => !a.unreadable),
+      baseUrl: getBaseUrl(),
+      accounts,
     },
     proxy: {
       enabled: proxy.enabled,

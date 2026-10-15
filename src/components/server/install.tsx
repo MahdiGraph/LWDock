@@ -95,10 +95,10 @@ function ExtraFields({
   )
 }
 
-export function InstallOs({ kind, id, onStarted }: ServerProps & { onStarted: () => void }) {
-  const os = useCatalog<{ operatingSystems: Named[] }>("bareMetals/v2/operatingSystems", { all: "operatingSystems" })
+export function InstallOs({ account, kind, id, onStarted }: ServerProps & { onStarted: () => void }) {
+  const os = useCatalog<{ operatingSystems: Named[] }>(account, "bareMetals/v2/operatingSystems", { all: "operatingSystems" })
   const [osId, setOsId] = React.useState("")
-  const panels = useCatalog<{ controlPanels: Named[] }>(
+  const panels = useCatalog<{ controlPanels: Named[] }>(account, 
     osId ? `bareMetals/v2/operatingSystems/${encodeURIComponent(osId)}/controlPanels` : null,
     { all: "controlPanels" }
   )
@@ -119,7 +119,7 @@ export function InstallOs({ kind, id, onStarted }: ServerProps & { onStarted: ()
     if (sshKeys.trim()) body.sshKeys = sshKeys.trim()
     if (password) body.password = password
     if (script.trim()) body.postInstallScript = toBase64(script)
-    await lwCall(kind, id, "POST", "install", body)
+    await lwCall(account, kind, id, "POST", "install", body)
     toast.success("Installation started. Follow it under Jobs.")
     setPassword("")
     onStarted()
@@ -210,8 +210,8 @@ export function InstallOs({ kind, id, onStarted }: ServerProps & { onStarted: ()
   )
 }
 
-export function RescueMode({ kind, id, onStarted }: ServerProps & { onStarted: () => void }) {
-  const images = useCatalog<{ rescueImages: Named[] }>("bareMetals/v2/rescueImages", { all: "rescueImages" })
+export function RescueMode({ account, kind, id, onStarted }: ServerProps & { onStarted: () => void }) {
+  const images = useCatalog<{ rescueImages: Named[] }>(account, "bareMetals/v2/rescueImages", { all: "rescueImages" })
   const [picked, setImageId] = React.useState("")
   const [sshKeys, setSshKeys] = React.useState("")
   const [password, setPassword] = React.useState("")
@@ -227,7 +227,7 @@ export function RescueMode({ kind, id, onStarted }: ServerProps & { onStarted: (
     if (sshKeys.trim()) body.sshKeys = sshKeys.trim()
     if (password) body.password = password
     if (script.trim()) body.postInstallScript = toBase64(script)
-    await lwCall(kind, id, "POST", "rescueMode", body)
+    await lwCall(account, kind, id, "POST", "rescueMode", body)
     toast.success("Rescue mode is starting. Follow it under Jobs.")
     setPassword("")
     onStarted()

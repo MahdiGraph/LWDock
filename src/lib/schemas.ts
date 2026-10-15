@@ -1,9 +1,10 @@
 import { z } from "zod"
 import { PROXY_PROTOCOLS } from "./settings"
 
+export const AccountName = z.string().trim().min(1, "give it a name").max(60)
+export const ApiKey = z.string().trim().min(8, "looks too short").max(512)
+
 export const LeasewebInput = z.object({
-  /** undefined: keep, "": remove */
-  apiKey: z.string().trim().max(512).optional(),
   baseUrl: z
     .string()
     .trim()

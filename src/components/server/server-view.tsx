@@ -5,6 +5,7 @@ import Link from "next/link"
 import { ArrowLeftIcon, PencilSimpleIcon } from "@phosphor-icons/react"
 import { toast } from "sonner"
 import { Board, Tile, TileLabel } from "@/components/board"
+import { Flag } from "@/components/flag"
 import { CopyButton, ErrorNote, Loading } from "@/components/common"
 import { Button } from "@/components/ui/button"
 import {
@@ -20,7 +21,7 @@ import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useLw } from "@/hooks/use-api"
-import { errorMessage, lwCall } from "@/lib/client"
+import { api, errorMessage } from "@/lib/client"
 import { KIND_META, summarize } from "@/lib/kinds"
 import { CloudIso, CloudReinstall, CloudSnapshots } from "./cloud"
 import { Credentials } from "./credentials"
@@ -33,14 +34,23 @@ import { CloudOverview, DedicatedOverview } from "./overview"
 import { PowerTile } from "./power"
 import { TRANSITIONAL, type Dict, type ServerProps } from "./types"
 
-export function ServerView({ kind, id, isAdmin }: ServerProps) {
+export function ServerView({
+  account,
+  accountName,
+  kind,
+  id,
+  isAdmin,
+  canRename,
+  nickname: initialNickname,
+}: ServerProps & { accountName: string; canRename: boolean; nickname: string | null }) {
   const [tab, setTab] = React.useState("overview")
-  const detail = useLw<Dict>(kind, id, "", undefined, {
+  const [nickname, setNickname] = React.useState(initialNickname)
+  const detail = useLw<Dict>(account, kind, id, "", undefined, {
     refreshInterval: (d) => (kind !== "dedicated" && d && TRANSITIONAL.includes(String(d.state)) ? 4000 : 0),
   })
   const raw = detail.data
-  const s = raw ? summarize(kind, raw) : null
-  const props = { kind, id, isAdmin }
+  const s = raw ? summarize(kind, raw, { id: account, name: accountName }) : null
+  const props = { account, kind, id, isAdmin }
   const refreshDetail = () => detail.mutate()
   const showJobs = () => setTab("jobs")
 
@@ -85,11 +95,18 @@ export function ServerView({ kind, id, isAdmin }: ServerProps) {
             <Tile className="col-span-12 flex flex-col justify-between gap-8 lg:col-span-6 lg:p-8">
               <div className="flex items-start justify-between gap-4">
                 <p className="text-[13px] text-muted-foreground">
-                  {KIND_META[kind].label} · <span className="tabular">{id}</span>
+                  {KIND_META[kind].label} · {accountName} · <span className="tabular">{id}</span>
                 </p>
-                {isAdmin ? <RenameButton {...props} current={s.reference ?? ""} onSaved={refreshDetail} /> : null}
+                {canRename ? (
+                  <RenameButton {...props} leasewebName={s.name} nickname={nickname} onSaved={setNickname} />
+                ) : null}
               </div>
-              <h1 className="display text-4xl break-words md:text-6xl">{s.name}</h1>
+              <div>
+                <h1 className="display text-4xl break-words md:text-6xl">{nickname || s.name}</h1>
+                {nickname ? (
+                  <p className="mt-3 text-sm text-muted-foreground">Leaseweb name: {s.name}</p>
+                ) : null}
+              </div>
               <p className="text-sm text-muted-foreground">{[s.spec, s.os].filter(Boolean).join(" · ") || " "}</p>
             </Tile>
             <PowerTile {...props} raw={raw} onChanged={refreshDetail} className="col-span-12 sm:col-span-6 lg:col-span-3" />
@@ -100,7 +117,10 @@ export function ServerView({ kind, id, isAdmin }: ServerProps) {
                   <p className="display text-2xl break-all tabular md:text-[1.75rem]">{s.ip ?? "—"}</p>
                   {s.ip ? <CopyButton value={s.ip} label="Copy IP" /> : null}
                 </div>
-                <p className="mt-2 text-sm text-muted-foreground">{s.location ?? " "}</p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  <Flag country={s.country} className="mr-1.5" />
+                  {s.location ?? " "}
+                </p>
               </div>
             </Tile>
           </Board>
@@ -127,18 +147,28 @@ export function ServerView({ kind, id, isAdmin }: ServerProps) {
   )
 }
 
-function RenameButton({ kind, id, current, onSaved }: ServerProps & { current: string; onSaved: () => void }) {
+/** A name for the server that only this user sees. The Leaseweb reference is never changed. */
+function RenameButton({
+  account,
+  kind,
+  id,
+  leasewebName,
+  nickname,
+  onSaved,
+}: ServerProps & { leasewebName: string; nickname: string | null; onSaved: (nickname: string | null) => void }) {
   const [open, setOpen] = React.useState(false)
-  const [value, setValue] = React.useState(current)
+  const [value, setValue] = React.useState(nickname ?? "")
   const [busy, setBusy] = React.useState(false)
 
-  async function save(e: React.FormEvent) {
-    e.preventDefault()
+  async function save(next: string | null) {
     setBusy(true)
     try {
-      await lwCall(kind, id, "PUT", "", { reference: value })
-      toast.success("Reference saved at Leaseweb")
-      onSaved()
+      const res = await api<{ nickname: string | null }>("/api/servers/nickname", {
+        method: "PUT",
+        body: { accountId: account, kind, serverId: id, nickname: next },
+      })
+      onSaved(res.nickname)
+      toast.success(res.nickname ? "Name saved. Only you see it." : "Back to the Leaseweb name")
       setOpen(false)
     } catch (err) {
       toast.error(errorMessage(err))
@@ -151,25 +181,43 @@ function RenameButton({ kind, id, current, onSaved }: ServerProps & { current: s
     <Dialog
       open={open}
       onOpenChange={(next) => {
-        if (next) setValue(current)
+        if (next) setValue(nickname ?? "")
         setOpen(next)
       }}
     >
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon-sm" aria-label="Edit reference">
+        <Button variant="ghost" size="icon-sm" aria-label="Rename for me">
           <PencilSimpleIcon />
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
-        <form onSubmit={save}>
+        <form
+          method="post"
+          onSubmit={(e) => {
+            e.preventDefault()
+            save(value.trim() || null)
+          }}
+        >
           <DialogHeader>
-            <DialogTitle className="display text-2xl">Reference</DialogTitle>
+            <DialogTitle className="display text-2xl">Your name for this server</DialogTitle>
             <DialogDescription className="prose-serif text-[15px]">
-              The name Leaseweb shows for this server. Only admins can change it.
+              Only you see this name. At Leaseweb the server keeps its name, {leasewebName}.
             </DialogDescription>
           </DialogHeader>
-          <Input className="my-6" value={value} onChange={(e) => setValue(e.target.value)} maxLength={100} autoFocus />
+          <Input
+            className="my-6"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder={leasewebName}
+            maxLength={80}
+            autoFocus
+          />
           <DialogFooter>
+            {nickname ? (
+              <Button type="button" variant="ghost" disabled={busy} onClick={() => save(null)} className="sm:mr-auto">
+                Use the Leaseweb name
+              </Button>
+            ) : null}
             <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
               Cancel
             </Button>

@@ -12,7 +12,7 @@ import type { PublicSettings } from "@/lib/settings"
 import { timeAgo } from "@/lib/format"
 
 function KindCount({ kind, enabled, className }: { kind: Kind; enabled: boolean; className?: string }) {
-  const { data, error, isLoading } = useApi<{ servers: (ServerSummary & { assignees: unknown[] })[] }>(
+  const { data, error, isLoading } = useApi<{ servers: (ServerSummary & { assignees: unknown[] })[]; errors: { account: string }[] }>(
     enabled ? `/api/admin/servers?kind=${kind}` : null
   )
   const total = data?.servers.length ?? 0
@@ -31,7 +31,12 @@ function KindCount({ kind, enabled, className }: { kind: Kind; enabled: boolean;
           ) : (
             <>
               <p className="display text-6xl tabular">{total}</p>
-              <p className="mt-2 text-sm text-muted-foreground">{total ? `${shared} shared` : "None on this account"}</p>
+              <p className="mt-2 text-sm text-muted-foreground">{total ? `${shared} shared` : "None yet"}</p>
+              {data?.errors.length ? (
+                <p className="mt-1 text-sm text-destructive">
+                  {data.errors.map((e) => e.account).join(", ")} could not be loaded
+                </p>
+              ) : null}
             </>
           )}
         </div>
@@ -56,6 +61,8 @@ export function AdminOverview({
   const configured = settings.leaseweb.configured
   const people = users.total - users.admins
   const proxy = settings.proxy
+  const accounts = settings.leaseweb.accounts
+  const unreadable = accounts.some((a) => a.unreadable)
 
   return (
     <Board>
@@ -98,13 +105,12 @@ export function AdminOverview({
             </p>
             <p className="mt-2 text-sm opacity-80">
               {!configured
-                ? settings.leaseweb.unreadable
-                  ? "The saved key cannot be read. Enter it again."
-                  : "Add the API key in Settings"
-                : proxy.enabled
-                  ? `via ${proxy.host}:${proxy.port}`
-                  : "No proxy"}
+                ? unreadable
+                  ? "A saved key cannot be read. Enter it again."
+                  : "Add an API key in Settings"
+                : `${accounts.length} account${accounts.length === 1 ? "" : "s"}${proxy.enabled ? ` via ${proxy.host}:${proxy.port}` : ", no proxy"}`}
             </p>
+            {configured && unreadable ? <p className="mt-1 text-sm">A saved key cannot be read.</p> : null}
           </div>
         </Link>
       </Tile>

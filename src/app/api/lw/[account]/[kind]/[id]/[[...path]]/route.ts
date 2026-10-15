@@ -5,8 +5,9 @@ import { canAccess } from "@/lib/servers"
 import { allowedServerCall, describeCall, safeDetail, safeSegments, stripBilling } from "@/lib/permissions"
 import { LeasewebError, lwRequest } from "@/lib/leaseweb"
 import { audit } from "@/lib/audit"
+import { getAccount } from "@/lib/accounts"
 
-type Ctx = { params: Promise<{ kind: string; id: string; path?: string[] }> }
+type Ctx = { params: Promise<{ account: string; kind: string; id: string; path?: string[] }> }
 
 function decode(segments: string[]): string[] | null {
   try {
@@ -26,13 +27,15 @@ async function handle(req: NextRequest, ctx: Ctx) {
   const params = await ctx.params
   if (!isKind(params.kind)) throw new HttpError(404, "Unknown server type.")
   const kind = params.kind
+  const accountId = Number(params.account)
+  if (!Number.isInteger(accountId) || !getAccount(accountId)) throw new HttpError(404, "Unknown Leaseweb account.")
   const segments = decode([params.id, ...(params.path ?? [])])
   if (!segments) throw new HttpError(400, "Invalid path.")
   const [serverId, ...rest] = segments
   const sub = rest.join("/")
   const method = req.method as "GET" | "POST" | "PUT" | "DELETE"
 
-  if (!canAccess(user, kind, serverId)) throw new HttpError(404, "This server is not assigned to you.")
+  if (!canAccess(user, accountId, kind, serverId)) throw new HttpError(404, "This server is not assigned to you.")
   const allowed = allowedServerCall(kind, method, sub, user.role === "admin")
   if (allowed === "unknown") throw new HttpError(404, "This action is not available in Leaseweb Dock.")
   if (allowed === "forbidden") throw new HttpError(403, "Only admins can do this.")
@@ -57,6 +60,7 @@ async function handle(req: NextRequest, ctx: Ctx) {
     audit({
       user,
       action: description,
+      accountId,
       kind,
       serverId,
       detail: safeDetail(body),
@@ -66,6 +70,7 @@ async function handle(req: NextRequest, ctx: Ctx) {
 
   try {
     const res = await lwRequest({
+      accountId,
       method,
       path,
       query: req.nextUrl.searchParams,

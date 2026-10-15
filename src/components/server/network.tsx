@@ -55,8 +55,8 @@ export function Network(props: ServerProps) {
   )
 }
 
-function IpTable({ kind, id }: ServerProps) {
-  const ips = useLw<{ ips: Ip[] }>(kind, id, "ips", kind === "dedicated" ? { limit: 100 } : undefined)
+function IpTable({ account, kind, id }: ServerProps) {
+  const ips = useLw<{ ips: Ip[] }>(account, kind, id, "ips", kind === "dedicated" ? { limit: 100 } : undefined)
   const [editing, setEditing] = React.useState<Ip | null>(null)
   const { busy, run } = useAction()
   const address = (ip: Ip) => stripPrefix(ip.ip)
@@ -117,7 +117,7 @@ function IpTable({ kind, id }: ServerProps) {
                         disabled={!!busy}
                         onClick={() =>
                           run(ip.ip, async () => {
-                            await lwCall(kind, id, "POST", `ips/${address(ip)}/unnull`)
+                            await lwCall(account, kind, id, "POST", `ips/${address(ip)}/unnull`)
                             await ips.mutate()
                           }, "Null route removal requested")
                         }
@@ -131,7 +131,7 @@ function IpTable({ kind, id }: ServerProps) {
                         confirmLabel="Null route"
                         destructive
                         onConfirm={async () => {
-                          await lwCall(kind, id, "POST", `ips/${address(ip)}/null`, kind === "dedicated" ? undefined : { comment: "Null routed from Leaseweb Dock" })
+                          await lwCall(account, kind, id, "POST", `ips/${address(ip)}/null`, kind === "dedicated" ? undefined : { comment: "Null routed from Leaseweb Dock" })
                           toast.success("Null route requested")
                           await ips.mutate()
                         }}
@@ -148,18 +148,20 @@ function IpTable({ kind, id }: ServerProps) {
           </Table>
         </div>
       ) : null}
-      <IpDialog kind={kind} id={id} ip={editing} onClose={() => setEditing(null)} onSaved={() => ips.mutate()} />
+      <IpDialog account={account} kind={kind} id={id} ip={editing} onClose={() => setEditing(null)} onSaved={() => ips.mutate()} />
     </section>
   )
 }
 
 function IpDialog({
+  account,
   kind,
   id,
   ip,
   onClose,
   onSaved,
 }: {
+  account: number
   kind: string
   id: string
   ip: Ip | null
@@ -169,13 +171,27 @@ function IpDialog({
   return (
     <Dialog open={!!ip} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-md">
-        {ip ? <IpForm key={ip.ip} kind={kind} id={id} ip={ip} onClose={onClose} onSaved={onSaved} /> : null}
+        {ip ? <IpForm key={ip.ip} account={account} kind={kind} id={id} ip={ip} onClose={onClose} onSaved={onSaved} /> : null}
       </DialogContent>
     </Dialog>
   )
 }
 
-function IpForm({ kind, id, ip, onClose, onSaved }: { kind: string; id: string; ip: Ip; onClose: () => void; onSaved: () => void }) {
+function IpForm({
+  account,
+  kind,
+  id,
+  ip,
+  onClose,
+  onSaved,
+}: {
+  account: number
+  kind: string
+  id: string
+  ip: Ip
+  onClose: () => void
+  onSaved: () => void
+}) {
   const [rdns, setRdns] = React.useState(ip.reverseLookup ?? "")
   const [profile, setProfile] = React.useState(ip.ddos?.detectionProfile ?? "")
   const [busy, setBusy] = React.useState(false)
@@ -189,7 +205,7 @@ function IpForm({ kind, id, ip, onClose, onSaved }: { kind: string; id: string; 
     try {
       const body: Record<string, string> = { reverseLookup: rdns.trim() }
       if (advanced && profile && profile !== ip.ddos?.detectionProfile) body.detectionProfile = profile
-      await lwCall(kind, id, "PUT", `ips/${stripPrefix(ip.ip)}`, body)
+      await lwCall(account, kind, id, "PUT", `ips/${stripPrefix(ip.ip)}`, body)
       toast.success("IP address updated")
       onSaved()
       onClose()
@@ -245,14 +261,14 @@ function IpForm({ kind, id, ip, onClose, onSaved }: { kind: string; id: string; 
   )
 }
 
-function Interfaces({ kind, id }: ServerProps) {
-  const data = useLw<{ networkInterfaces: Interface[] }>(kind, id, "networkInterfaces")
+function Interfaces({ account, kind, id }: ServerProps) {
+  const data = useLw<{ networkInterfaces: Interface[] }>(account, kind, id, "networkInterfaces")
   const { busy, run } = useAction()
 
   const toggle = (iface: Interface, open: boolean) => {
     const url = IFACE_URL[String(iface.type)] ?? String(iface.type).toLowerCase()
     return run(`${iface.type}`, async () => {
-      await lwCall(kind, id, "POST", `networkInterfaces/${url}/${open ? "open" : "close"}`)
+      await lwCall(account, kind, id, "POST", `networkInterfaces/${url}/${open ? "open" : "close"}`)
       setTimeout(() => data.mutate(), 3000)
     }, open ? "Opening the port" : "Closing the port")
   }
@@ -322,8 +338,8 @@ function Interfaces({ kind, id }: ServerProps) {
 
 type NullRoute = { ip?: string; nulledAt?: string; automatedUnnullingAt?: string; comment?: string; nullLevel?: number; ticketId?: string }
 
-function NullRouteHistory({ kind, id }: ServerProps) {
-  const data = useLw<{ nullRoutes: NullRoute[] }>(kind, id, "nullRouteHistory", { limit: 20 })
+function NullRouteHistory({ account, kind, id }: ServerProps) {
+  const data = useLw<{ nullRoutes: NullRoute[] }>(account, kind, id, "nullRouteHistory", { limit: 20 })
   if (data.error || !data.data?.nullRoutes?.length) return null
   return (
     <section>

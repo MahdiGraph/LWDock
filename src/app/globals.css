@@ -4,6 +4,15 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Flag emoji from Twemoji (CC-BY 4.0), only for the flag code points. */
+@font-face {
+  font-family: "Twemoji Country Flags";
+  src: url("/fonts/TwemojiCountryFlags.woff2") format("woff2");
+  unicode-range: U+1F1E6-1F1FF, U+1F3F4, U+E0062-E0063, U+E0065, U+E0067, U+E006C, U+E006E, U+E0073-E0074, U+E0077,
+    U+E007F;
+  font-display: swap;
+}
+
 /*
  * Leaseweb Dock theme — "Lunar and bronze".
  * One ground, one ink, one accent (bronze). Surfaces are separated by a step
@@ -167,6 +176,9 @@
   }
   .tabular {
     font-variant-numeric: tabular-nums;
+  }
+  .font-flags {
+    font-family: "Twemoji Country Flags", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
   }
 }
 

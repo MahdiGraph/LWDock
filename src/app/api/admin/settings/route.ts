@@ -1,11 +1,6 @@
 import { z } from "zod"
 import { clientIp, json, readJson, requireApiAdmin, route } from "@/lib/http"
-import {
-  getProxySettings,
-  publicSettings,
-  saveLeasewebSettings,
-  saveProxySettings,
-} from "@/lib/settings"
+import { getProxySettings, publicSettings, saveBaseUrl, saveProxySettings } from "@/lib/settings"
 import { audit } from "@/lib/audit"
 import { LeasewebInput, ProxyInput } from "@/lib/schemas"
 
@@ -24,9 +19,8 @@ export const PUT = route(async (req) => {
   const body = await readJson(req, Body)
   const ip = clientIp(req)
   if (body.leaseweb) {
-    const { apiKey, baseUrl } = body.leaseweb
-    saveLeasewebSettings({ apiKey: apiKey === undefined ? undefined : apiKey || null, baseUrl })
-    audit({ user: admin, action: apiKey ? "Updated the Leaseweb API key" : "Updated Leaseweb API settings", ip, status: 200 })
+    saveBaseUrl(body.leaseweb.baseUrl)
+    audit({ user: admin, action: `Set the Leaseweb API address to ${body.leaseweb.baseUrl}`, ip, status: 200 })
   }
   if (body.proxy) {
     const p = body.proxy

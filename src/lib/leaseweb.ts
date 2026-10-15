@@ -2,12 +2,8 @@ import https from "node:https"
 import { HttpsProxyAgent } from "https-proxy-agent"
 import { SocksProxyAgent } from "socks-proxy-agent"
 import { APP_VERSION } from "./config"
-import {
-  getLeasewebSettings,
-  getProxySettings,
-  type LeasewebSettings,
-  type ProxySettings,
-} from "./settings"
+import { accountKey } from "./accounts"
+import { getBaseUrl, getProxySettings, type ProxySettings } from "./settings"
 
 /**
  * Every request to the Leaseweb API goes through this module. When the proxy is
@@ -33,14 +29,16 @@ export class LeasewebError extends Error {
 type Query = Record<string, string | number | boolean | undefined | null> | URLSearchParams
 
 export type LwRequest = {
+  /** The Leaseweb account (API key) to use. */
+  accountId?: number
   method?: "GET" | "POST" | "PUT" | "DELETE"
   /** Path below the base URL, starting with a slash, e.g. /bareMetals/v2/servers */
   path: string
   query?: Query
   body?: unknown
   timeoutMs?: number
-  /** Use these settings instead of the saved ones (for "test connection"). */
-  override?: { leaseweb: LeasewebSettings; proxy: ProxySettings }
+  /** Use these values instead of the saved ones (for "test connection"). */
+  override?: { apiKey: string | null; baseUrl: string; proxy: ProxySettings }
 }
 
 export type LwResponse<T> = { status: number; data: T }
@@ -109,13 +107,19 @@ function errorFromResponse(status: number, data: unknown): LeasewebError {
 }
 
 export async function lwRequest<T = unknown>(req: LwRequest): Promise<LwResponse<T>> {
-  const leaseweb = req.override?.leaseweb ?? getLeasewebSettings()
+  const baseUrl = req.override?.baseUrl ?? getBaseUrl()
   const proxy = req.override?.proxy ?? getProxySettings()
-  if (!leaseweb.apiKey) {
-    throw new LeasewebError(503, "The Leaseweb API key is not configured. An admin can add it under Settings.")
+  const apiKey = req.override ? req.override.apiKey : req.accountId !== undefined ? accountKey(req.accountId) : null
+  if (!apiKey) {
+    throw new LeasewebError(
+      503,
+      req.override || req.accountId === undefined
+        ? "No Leaseweb API key was given."
+        : "This Leaseweb account has no usable API key. An admin can fix it under Settings."
+    )
   }
 
-  const url = new URL(leaseweb.baseUrl.replace(/\/+$/, "") + req.path)
+  const url = new URL(baseUrl.replace(/\/+$/, "") + req.path)
   if (url.protocol !== "https:") throw new LeasewebError(500, "The API base URL must use https.")
   if (req.query) {
     const entries = req.query instanceof URLSearchParams ? [...req.query.entries()] : Object.entries(req.query)
@@ -135,7 +139,7 @@ export async function lwRequest<T = unknown>(req: LwRequest): Promise<LwResponse
           agent,
           timeout: req.timeoutMs ?? 30_000,
           headers: {
-            "X-LSW-Auth": leaseweb.apiKey!,
+            "X-LSW-Auth": apiKey,
             Accept: "application/json",
             "User-Agent": `LeasewebDock/${APP_VERSION}`,
             ...(payload ? { "Content-Type": "application/json", "Content-Length": payload.length } : {}),
@@ -178,11 +182,17 @@ export async function lwRequest<T = unknown>(req: LwRequest): Promise<LwResponse
 }
 
 /** Follows limit/offset pagination and returns every item of a list endpoint. */
-export async function lwFetchAll<T>(path: string, key: string, query: Record<string, string> = {}, max = 5000): Promise<T[]> {
+export async function lwFetchAll<T>(
+  accountId: number,
+  path: string,
+  key: string,
+  query: Record<string, string> = {},
+  max = 5000
+): Promise<T[]> {
   const items: T[] = []
   const limit = 50
   for (let offset = 0; offset < max; offset += limit) {
-    const { data } = await lwRequest<Record<string, unknown>>({ path, query: { ...query, limit, offset } })
+    const { data } = await lwRequest<Record<string, unknown>>({ accountId, path, query: { ...query, limit, offset } })
     const page = (Array.isArray(data?.[key]) ? data[key] : []) as T[]
     items.push(...page)
     const meta = data?._metadata as { totalCount?: number } | undefined

@@ -42,8 +42,8 @@ const DEDICATED_TYPES = [
 ]
 const CLOUD_TYPES = ["OPERATING_SYSTEM", "CONTROL_PANEL"]
 
-export function Credentials({ kind, id }: ServerProps) {
-  const list = useLw<{ credentials: Credential[] }>(kind, id, "credentials", kind === "dedicated" ? { limit: 100 } : undefined)
+export function Credentials({ account, kind, id }: ServerProps) {
+  const list = useLw<{ credentials: Credential[] }>(account, kind, id, "credentials", kind === "dedicated" ? { limit: 100 } : undefined)
   const [revealed, setRevealed] = React.useState<Record<string, string>>({})
   const [loadingKey, setLoadingKey] = React.useState<string | null>(null)
   const [dialog, setDialog] = React.useState<DialogState>(null)
@@ -53,7 +53,7 @@ export function Credentials({ kind, id }: ServerProps) {
   async function reveal(c: Credential) {
     setLoadingKey(keyOf(c))
     try {
-      const res = await api<{ password?: string }>(lwUrl(kind, id, `credentials/${c.type}/${c.username}`))
+      const res = await api<{ password?: string }>(lwUrl(account, kind, id, `credentials/${c.type}/${c.username}`))
       setRevealed((r) => ({ ...r, [keyOf(c)]: res.password ?? "" }))
     } catch (e) {
       toast.error(errorMessage(e))
@@ -81,7 +81,7 @@ export function Credentials({ kind, id }: ServerProps) {
                 confirmLabel="Reset password"
                 onConfirm={() =>
                   run("reset", async () => {
-                    await lwCall(kind, id, "POST", "resetPassword")
+                    await lwCall(account, kind, id, "POST", "resetPassword")
                     setTimeout(() => list.mutate(), 5000)
                   }, "Password reset requested")
                 }
@@ -149,7 +149,7 @@ export function Credentials({ kind, id }: ServerProps) {
                         confirmLabel="Delete"
                         destructive
                         onConfirm={async () => {
-                          await lwCall(kind, id, "DELETE", `credentials/${c.type}/${c.username}`)
+                          await lwCall(account, kind, id, "DELETE", `credentials/${c.type}/${c.username}`)
                           toast.success("Credential deleted")
                           await list.mutate()
                         }}
@@ -168,6 +168,7 @@ export function Credentials({ kind, id }: ServerProps) {
       ) : null}
 
       <CredentialDialog
+        account={account}
         kind={kind}
         id={id}
         state={dialog}
@@ -188,12 +189,14 @@ export function Credentials({ kind, id }: ServerProps) {
 type DialogState = { mode: "add" } | { mode: "edit"; cred: Credential } | null
 
 function CredentialDialog({
+  account,
   kind,
   id,
   state,
   onClose,
   onSaved,
 }: {
+  account: number
   kind: string
   id: string
   state: DialogState
@@ -205,6 +208,7 @@ function CredentialDialog({
       <DialogContent className="sm:max-w-md">
         {state ? (
           <CredentialForm
+            account={account}
             key={state.mode === "edit" ? `${state.cred.type}/${state.cred.username}` : "add"}
             kind={kind}
             id={id}
@@ -219,12 +223,14 @@ function CredentialDialog({
 }
 
 function CredentialForm({
+  account,
   kind,
   id,
   state,
   onClose,
   onSaved,
 }: {
+  account: number
   kind: string
   id: string
   state: NonNullable<DialogState>
@@ -245,9 +251,9 @@ function CredentialForm({
     setError(null)
     try {
       if (editing) {
-        await lwCall(kind, id, "PUT", `credentials/${type}/${username}`, { password })
+        await lwCall(account, kind, id, "PUT", `credentials/${type}/${username}`, { password })
       } else {
-        await lwCall(kind, id, "POST", "credentials", { type, username, password })
+        await lwCall(account, kind, id, "POST", "credentials", { type, username, password })
       }
       toast.success("Credential saved")
       onSaved({ type, username })

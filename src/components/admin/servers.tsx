@@ -22,25 +22,27 @@ import { Spinner } from "@/components/ui/spinner"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useApi } from "@/hooks/use-api"
-import { api, errorMessage } from "@/lib/client"
+import { api, errorMessage, serverHref } from "@/lib/client"
+import { Flag } from "@/components/flag"
 import { KIND_META, KINDS, type Kind, type ServerSummary } from "@/lib/kinds"
 import type { AdminUserRow } from "@/lib/users"
 
 type Row = ServerSummary & { assignees: { userId: number; username: string; name: string | null }[] }
+type ListResponse = { servers: Row[]; errors: { accountId: number; account: string; message: string }[] }
 
 export function AdminServers({ configured, initialKind }: { configured: boolean; initialKind: Kind }) {
   const [kind, setKind] = React.useState<Kind>(initialKind)
   const [query, setQuery] = React.useState("")
   const [refreshing, setRefreshing] = React.useState(false)
   const [assigning, setAssigning] = React.useState<Row | null>(null)
-  const { data, error, isLoading, mutate } = useApi<{ servers: Row[] }>(configured ? `/api/admin/servers?kind=${kind}` : null)
+  const { data, error, isLoading, mutate } = useApi<ListResponse>(configured ? `/api/admin/servers?kind=${kind}` : null)
 
   const rows = React.useMemo(() => {
     const q = query.trim().toLowerCase()
     const list = data?.servers ?? []
     if (!q) return list
     return list.filter((s) =>
-      [s.id, s.name, s.ip, s.location, s.spec, s.os, ...s.assignees.map((a) => a.username)]
+      [s.id, s.name, s.ip, s.location, s.spec, s.os, s.accountName, ...s.assignees.map((a) => a.username)]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q))
     )
@@ -49,7 +51,7 @@ export function AdminServers({ configured, initialKind }: { configured: boolean;
   async function refresh() {
     setRefreshing(true)
     try {
-      await mutate(await api<{ servers: Row[] }>(`/api/admin/servers?kind=${kind}&refresh=1`), { revalidate: false })
+      await mutate(await api<ListResponse>(`/api/admin/servers?kind=${kind}&refresh=1`), { revalidate: false })
     } catch (e) {
       toast.error(errorMessage(e))
     } finally {
@@ -109,6 +111,9 @@ export function AdminServers({ configured, initialKind }: { configured: boolean;
       </div>
 
       <ErrorNote error={error} className="mb-4" />
+      {data?.errors.map((e) => (
+        <ErrorNote key={e.accountId} error={new Error(`${e.account}: ${e.message}`)} className="mb-2" />
+      ))}
       {isLoading && !data ? (
         <Loading label="Loading servers from Leaseweb…" />
       ) : data && rows.length === 0 ? (
@@ -131,20 +136,26 @@ export function AdminServers({ configured, initialKind }: { configured: boolean;
             </TableHeader>
             <TableBody>
               {rows.map((s) => (
-                <TableRow key={s.id}>
+                <TableRow key={`${s.accountId}:${s.id}`}>
                   <TableCell className="py-3 pl-4">
-                    <Link href={`/servers/${s.kind}/${encodeURIComponent(s.id)}`} className="font-medium hover:underline">
+                    <Link href={serverHref(s.accountId, s.kind, s.id)} className="font-medium hover:underline">
                       {s.name}
                     </Link>
-                    {s.name !== s.id ? <div className="text-[13px] text-muted-foreground tabular">{s.id}</div> : null}
+                    <div className="text-[13px] text-muted-foreground">
+                      {s.name !== s.id ? <span className="tabular">{s.id} · </span> : null}
+                      {s.accountName}
+                    </div>
                   </TableCell>
                   <TableCell className="tabular">{s.ip ?? "—"}</TableCell>
-                  <TableCell className="hidden lg:table-cell">{s.location ?? "—"}</TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    <Flag country={s.country} className="mr-1.5" />
+                    {s.location ?? "—"}
+                  </TableCell>
                   <TableCell className="hidden max-w-64 truncate xl:table-cell">{s.spec ?? "—"}</TableCell>
                   <TableCell className="hidden md:table-cell">{s.state ? <StateMark state={s.state} /> : "—"}</TableCell>
                   <TableCell className="max-w-56">
                     {s.assignees.length ? (
-                      <span className="line-clamp-2">{s.assignees.map((a) => a.name || a.username).join(", ")}</span>
+                      <span className="line-clamp-2">{s.assignees.map((a) => a.username).join(", ")}</span>
                     ) : (
                       <span className="text-muted-foreground">Nobody</span>
                     )}
@@ -170,7 +181,7 @@ function AssignDialog({ server, onClose, onSaved }: { server: Row | null; onClos
   return (
     <Dialog open={!!server} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
-        {server ? <AssignForm key={`${server.kind}:${server.id}`} server={server} onClose={onClose} onSaved={onSaved} /> : null}
+        {server ? <AssignForm key={`${server.accountId}:${server.kind}:${server.id}`} server={server} onClose={onClose} onSaved={onSaved} /> : null}
       </DialogContent>
     </Dialog>
   )
@@ -188,7 +199,7 @@ function AssignForm({ server, onClose, onSaved }: { server: Row; onClose: () => 
     try {
       await api("/api/admin/assignments", {
         method: "PUT",
-        body: { kind: server.kind, serverId: server.id, label: server.name, userIds: [...selected] },
+        body: { accountId: server.accountId, kind: server.kind, serverId: server.id, label: server.name, userIds: [...selected] },
       })
       toast.success("Assignment saved")
       onSaved()

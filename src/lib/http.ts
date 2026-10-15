@@ -85,7 +85,8 @@ export function route<C = unknown>(fn: Handler<C>): Handler<C> {
     } catch (e) {
       if (e instanceof HttpError) return json({ error: e.message, details: e.details }, e.status)
       if (e instanceof LeasewebError) {
-        const status = e.status >= 400 && e.status < 600 ? e.status : 502
+        // A 401 from Leaseweb means a bad API key, not a signed-out panel user.
+        const status = e.status === 401 ? 502 : e.status >= 400 && e.status < 600 ? e.status : 502
         return json({ error: e.message, code: e.code, correlationId: e.correlationId, details: e.details }, status)
       }
       console.error(e)

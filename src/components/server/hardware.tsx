@@ -25,8 +25,8 @@ function hz(v: unknown) {
   return Number.isFinite(n) && n > 0 ? `${(n / 1e9).toFixed(2)} GHz` : s(v)
 }
 
-export function Hardware({ kind, id, onStarted }: ServerProps & { onStarted: () => void }) {
-  const hw = useLw<Hardware>(kind, id, "hardwareInfo")
+export function Hardware({ account, kind, id, onStarted }: ServerProps & { onStarted: () => void }) {
+  const hw = useLw<Hardware>(account, kind, id, "hardwareInfo")
   const [cycle, setCycle] = React.useState(true)
   const r = hw.data?.result ?? {}
   const chassis = (r.chassis ?? {}) as Dict
@@ -47,7 +47,7 @@ export function Hardware({ kind, id, onStarted }: ServerProps & { onStarted: () 
         </label>
       }
       onConfirm={async () => {
-        await lwCall(kind, id, "POST", "hardwareScan", { powerCycle: cycle })
+        await lwCall(account, kind, id, "POST", "hardwareScan", { powerCycle: cycle })
         toast.success("Hardware scan started")
         onStarted()
       }}

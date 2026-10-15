@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
 import { Spinner } from "@/components/ui/spinner"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { fetcher } from "@/lib/client"
+import { fetcher, serverHref } from "@/lib/client"
 import { formatDateTime, timeAgo } from "@/lib/format"
 import { isKind, KIND_META } from "@/lib/kinds"
 import type { AuditRow } from "@/lib/audit"
@@ -89,8 +89,8 @@ export function ActivityLog() {
                       {r.detail ? <div className="mt-0.5 text-[13px] break-all text-muted-foreground">{r.detail}</div> : null}
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      {r.server_id && r.kind && isKind(r.kind) ? (
-                        <Link href={`/servers/${r.kind}/${encodeURIComponent(r.server_id)}`} className="hover:underline">
+                      {r.server_id && r.kind && r.account_id && isKind(r.kind) ? (
+                        <Link href={serverHref(r.account_id, r.kind, r.server_id)} className="hover:underline">
                           {r.server_id}
                           <span className="text-muted-foreground"> · {KIND_META[r.kind].short}</span>
                         </Link>

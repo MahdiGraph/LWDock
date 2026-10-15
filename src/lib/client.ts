@@ -45,17 +45,29 @@ function qs(query?: Query) {
   return s ? `?${s}` : ""
 }
 
-export function lwUrl(kind: string, id: string, sub = "", query?: Query) {
+/** Address of a server page in the panel. */
+export function serverHref(account: number, kind: string, id: string) {
+  return `/servers/${account}/${kind}/${encodeURIComponent(id)}`
+}
+
+export function lwUrl(account: number, kind: string, id: string, sub = "", query?: Query) {
   const path = sub ? `/${sub.split("/").map(encodeURIComponent).join("/")}` : ""
-  return `/api/lw/${kind}/${encodeURIComponent(id)}${path}${qs(query)}`
+  return `/api/lw/${account}/${kind}/${encodeURIComponent(id)}${path}${qs(query)}`
 }
 
-export function catalogUrl(path: string, query?: Query) {
-  return `/api/catalog/${path}${qs(query)}`
+export function catalogUrl(account: number, path: string, query?: Query) {
+  return `/api/catalog/${account}/${path}${qs(query)}`
 }
 
-export function lwCall<T = unknown>(kind: string, id: string, method: "GET" | "POST" | "PUT" | "DELETE", sub = "", body?: unknown) {
-  return api<T>(lwUrl(kind, id, sub), { method, body })
+export function lwCall<T = unknown>(
+  account: number,
+  kind: string,
+  id: string,
+  method: "GET" | "POST" | "PUT" | "DELETE",
+  sub = "",
+  body?: unknown
+) {
+  return api<T>(lwUrl(account, kind, id, sub), { method, body })
 }
 
 export function errorMessage(e: unknown) {

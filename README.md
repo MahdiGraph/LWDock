@@ -4,8 +4,9 @@ A small self-hosted panel for people who rent Leaseweb servers on behalf of othe
 
 You keep the Leaseweb account. Your friends, clients or teammates get their own login and can manage only the servers you assign to them: reboot, reinstall, rescue mode, network, graphs and more, without ever touching your Leaseweb portal or API key.
 
-- **One admin account** holds the Leaseweb API key (stored encrypted).
-- **Users** see only the servers assigned to them.
+- **Several Leaseweb API keys**: Leaseweb gives one key per regional company (for example the Netherlands and Germany). Add them all; their servers are listed together, each with its country flag.
+- **One admin account** holds the keys (stored encrypted), creates users and assigns servers.
+- **Users** see only the servers assigned to them, and can give each one their own name. The reference you set at Leaseweb is never changed.
 - **Everything the Leaseweb API offers for a server** is available to its user: power, OS install, rescue, IPs and reverse DNS, null routing, switch ports, credentials, graphs, jobs, hardware, snapshots, console and ISOs.
 - **Outbound proxy**: send every Leaseweb API request through an HTTP, HTTPS or SOCKS proxy, with no direct fallback.
 - **Activity log** of who did what to which server.
@@ -61,7 +62,7 @@ The panel listens on port 3000 and keeps its data in `./data`. Change that with 
 
 ## First steps
 
-1. **Settings**: paste your Leaseweb API key and press *Test connection*. Create the key in the Leaseweb Customer Portal under [API keys](https://secure.leaseweb.com/api-client-management/).
+1. **Settings → Leaseweb accounts**: add one API key per Leaseweb company you buy from (for example *Netherlands* and *Germany*) and press *Test*. Create keys in the Leaseweb Customer Portal under [API keys](https://secure.leaseweb.com/api-client-management/).
 2. **Settings → Outbound proxy** (optional): turn it on if the panel must reach Leaseweb through a proxy.
 3. **Users**: create an account for each person. Copy the generated password and send it to them.
 4. **Servers**: press *Assign* next to a server and tick the users who should manage it.
@@ -82,7 +83,9 @@ Users sign in at the same address and see only their own servers.
 | Stored credentials: show, add, change, delete | Stored credentials, password reset |
 | IPMI reset, hardware report and hardware scan | |
 
-Admins can do all of that on every server, plus rename servers (Leaseweb reference), manage users and assignments, read the activity log and change settings. Billing details (prices, customer ID) are hidden from users.
+Admins can do all of that on every server, plus manage API keys, users and assignments, read the activity log and change settings. Billing details (prices, customer ID) are hidden from users.
+
+Servers are named after their **reference** at Leaseweb, so you can keep using references to note who owns which server. The panel never changes a reference. A user can give a server their own name instead; it is stored in the panel, only that user sees it, and admins keep seeing the reference.
 
 ## Outbound proxy
 
@@ -139,7 +142,8 @@ Keep the `.env` file with your backup: the database is useless without its `APP_
 ## Security notes
 
 - Users reach Leaseweb only through the panel, which checks every call against the user's assignments and a fixed list of allowed endpoints. Account-wide operations (ordering, invoices, private networks, terminating machines) are not exposed.
-- Passwords are hashed with scrypt. The API key and proxy password are encrypted with AES-256-GCM.
+- Passwords are hashed with scrypt. API keys and the proxy password are encrypted with AES-256-GCM.
+- Each server is reached with the API key of the account it belongs to; a user assigned a server in one account cannot reach other servers through that key.
 - Sessions are HTTP-only cookies; sign-in attempts are rate limited.
 - Every change made through the panel is written to the activity log, without passwords or scripts.
 - Leaseweb notifications go to the contacts on your Leaseweb account, not to panel users.
@@ -151,7 +155,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000 (use `localhost`, not `127.0.0.1`, in development). The stack is Next.js 16, React 19, Tailwind CSS 4, shadcn/ui and SQLite (better-sqlite3). The visual design follows the [taste skill](https://www.tasteskill.dev) (`.claude/skills/design-taste-frontend`).
+Open http://localhost:3000 (use `localhost`, not `127.0.0.1`, in development). The stack is Next.js 16, React 19, Tailwind CSS 4, shadcn/ui and SQLite (better-sqlite3). The visual design follows the [taste skill](https://www.tasteskill.dev) (`.claude/skills/design-taste-frontend`). Flags are drawn with [Twemoji](https://github.com/twitter/twemoji) (CC-BY 4.0) through the font from [country-flag-emoji-polyfill](https://github.com/talkjs/country-flag-emoji-polyfill), so they also show on Windows.
 
 ## Disclaimer
 

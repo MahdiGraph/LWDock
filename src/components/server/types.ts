@@ -3,6 +3,8 @@ import type { Kind } from "@/lib/kinds"
 export type Dict = Record<string, unknown>
 
 export type ServerProps = {
+  /** The Leaseweb account (API key) the server belongs to. */
+  account: number
   kind: Kind
   id: string
   isAdmin: boolean
