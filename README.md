@@ -13,7 +13,7 @@ You keep the Leaseweb account. Your friends, clients or teammates get their own 
 
 ## Install
 
-You need a Linux server with a public IP (1 GB RAM is enough). One command installs Docker if needed, downloads Leaseweb Dock to `/opt/leaseweb-dock`, generates a secret and starts it:
+You need a Linux server with a public IP (1 GB RAM is enough). One command installs Docker and the Docker Compose plugin if they are missing, downloads Leaseweb Dock to `/opt/leaseweb-dock`, generates a secret and starts it:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/MahdiGraph/LWDock/main/install.sh | sudo bash
@@ -26,6 +26,8 @@ Use another port or folder by setting variables in front of `bash`:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/MahdiGraph/LWDock/main/install.sh | sudo PORT=8080 INSTALL_DIR=/srv/dock bash
 ```
+
+Leaseweb Dock uses Docker Compose v2, the `docker compose` command (with a space). The old standalone `docker-compose` 1.x is end-of-life and is not used even if it is installed; the installer adds the v2 plugin next to it.
 
 ### With Docker Compose by hand
 
